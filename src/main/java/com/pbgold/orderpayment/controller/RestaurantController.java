@@ -38,6 +38,8 @@ public class RestaurantController {
     }
 
     /**
+     * API type: POST
+     *
      * Registers a new restaurant. The category must be FOOD, DRINK or DESSERT. Opening hours are optional
      * and default to ALL_DAY. A new restaurant is not paused, so it is open whenever its opening hours allow.
      */
@@ -48,6 +50,8 @@ public class RestaurantController {
     }
 
     /**
+     * API type: GET all
+     *
      * Lists only the restaurants a customer can order from right now: not paused, and the current time
      * (in the app time zone) is inside the restaurant's opening hours. Closed or paused restaurants are left out.
      */
@@ -58,6 +62,8 @@ public class RestaurantController {
     }
 
     /**
+     * API type: GET
+     *
      * Returns the restaurant's opening-hours preset with its open and close time (e.g. OFFICE_HOURS 09:00-21:00).
      * A close time earlier than the open time means the window runs past midnight.
      */
@@ -68,6 +74,8 @@ public class RestaurantController {
     }
 
     /**
+     * API type: PUT / PATCH (PUT)
+     *
      * Changes the restaurant's opening-hours preset. The preset applies to every day of the week and takes
      * effect immediately for new orders. Orders that were already placed are not affected.
      */
@@ -79,6 +87,8 @@ public class RestaurantController {
     }
 
     /**
+     * API type: PUT / PATCH (PUT)
+     *
      * Temporarily stops the restaurant from taking orders for 1-1440 minutes, with an optional reason.
      * The pause ends by itself. Calling it again only moves the end time, it never un-pauses.
      * A pause can only close a restaurant: it never opens one outside its opening hours.
@@ -91,6 +101,8 @@ public class RestaurantController {
     }
 
     /**
+     * API type: DELETE
+     *
      * Ends a pause early so the restaurant follows its opening hours again.
      * Safe to repeat: resuming a restaurant that is not paused changes nothing.
      */
@@ -101,6 +113,8 @@ public class RestaurantController {
     }
 
     /**
+     * API type: POST
+     *
      * Adds a dish to the restaurant's menu. It starts as available. The price is stored with 2 decimals;
      * orders copy the price at the moment they are placed, so it is not a promise for later orders.
      */
@@ -112,6 +126,8 @@ public class RestaurantController {
     }
 
     /**
+     * API type: GET all
+     *
      * Returns every menu item of the restaurant in the order they were added, including unavailable ones.
      */
     @GetMapping("/restaurants/{id}/menu")
@@ -121,6 +137,8 @@ public class RestaurantController {
     }
 
     /**
+     * API type: PUT / PATCH (PATCH)
+     *
      * Flips a menu item between available and unavailable (e.g. sold out). Unavailable items cannot be ordered.
      * Orders that already contain the item are not affected.
      */

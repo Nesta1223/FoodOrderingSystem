@@ -33,6 +33,8 @@ public class OrderController {
     }
 
     /**
+     * API type: POST
+     *
      * Places a new PENDING order. The restaurant must be open now and every item must exist, belong to that
      * restaurant and be available. The client sends only item ids and quantities: the server copies each
      * item's current price into the order and calculates the total itself.
@@ -44,6 +46,8 @@ public class OrderController {
     }
 
     /**
+     * API type: GET
+     *
      * Returns one order with its items. Each item shows the price locked at order time and its subtotal.
      */
     @GetMapping("/{id}")
@@ -53,6 +57,8 @@ public class OrderController {
     }
 
     /**
+     * API type: GET all
+     *
      * Returns all orders of one user, newest first. Responds 404 if the user does not exist.
      */
     @GetMapping
@@ -62,6 +68,8 @@ public class OrderController {
     }
 
     /**
+     * API type: PUT / PATCH (PATCH)
+     *
      * Moves an order forward through its lifecycle: PENDING, CONFIRMED, PREPARING, DELIVERED.
      * Skipping a step or going backwards is rejected. Setting CANCELLED follows the same rules as DELETE.
      */
@@ -73,6 +81,8 @@ public class OrderController {
     }
 
     /**
+     * API type: DELETE
+     *
      * Cancels an order. Only PENDING orders can be cancelled, and not once they have been paid
      * (refund the payment first). The order is kept with status CANCELLED, it is not deleted.
      */

@@ -27,6 +27,8 @@ public class PaymentController {
     }
 
     /**
+     * API type: POST
+     *
      * Pays for an order in full. The order must not be cancelled or already paid, and the amount must equal
      * the order total exactly. There is no external payment gateway, so a valid payment succeeds immediately
      * and receives a UUID transaction reference and a paid timestamp.
@@ -38,6 +40,8 @@ public class PaymentController {
     }
 
     /**
+     * API type: GET
+     *
      * Returns the most recent payment for an order. An order can have several payment rows over time
      * (for example a refunded one, then a new one). Responds 404 if the order has never been paid.
      */
@@ -48,6 +52,8 @@ public class PaymentController {
     }
 
     /**
+     * API type: POST
+     *
      * Refunds a successful payment. Only SUCCESS payments can be refunded. The payment row is never deleted:
      * only its status changes to REFUNDED, so the history stays intact. The order itself is not changed.
      */
