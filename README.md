@@ -184,7 +184,7 @@ Opening hours can't know about a power cut or an overloaded kitchen, so owners c
 ## Project Structure
 
 ```
-src/main/java/com/pbgold/orderpayment/
+src/main/java/orderpayment/
 ├── controller/   REST endpoints
 ├── service/      Business logic
 ├── repository/   Data access
