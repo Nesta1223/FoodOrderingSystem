@@ -1,0 +1,15 @@
+# Used by the API tests (@ActiveProfiles("test")). Overrides application.yml so tests run against an
+# in-memory H2 database in PostgreSQL mode instead of the real PostgreSQL.
+spring:
+  datasource:
+    url: jdbc:h2:mem:orderpayment;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
