@@ -50,9 +50,9 @@ curl -X POST localhost:8080/api/payments -H "Content-Type: application/json" \
 # Refund it
 curl -X POST localhost:8080/api/payments/1/refund
 
-# Restrict the restaurant to opening hours. Orders outside them are rejected with "Restaurant is closed"
+# Limit the restaurant to 09:00-21:00. Orders outside those hours are rejected with "Restaurant is closed"
 curl -X PUT localhost:8080/api/restaurants/1/opening-hours -H "Content-Type: application/json" \
-  -d '{"openingHours":[{"dayOfWeek":"MONDAY","openTime":"09:00","closeTime":"21:00"}]}'
+  -d '{"openingHours":"OFFICE_HOURS"}'
 ```
 
 ## API Overview
@@ -67,11 +67,12 @@ curl -X PUT localhost:8080/api/restaurants/1/opening-hours -H "Content-Type: app
 | POST | `/api/payments` | Pay for an order |
 | GET | `/api/payments/{orderId}` | Get the latest payment for an order |
 | POST | `/api/payments/{id}/refund` | Refund a successful payment |
-| POST | `/api/restaurants` | Create a restaurant (optionally with opening hours) |
+| POST | `/api/restaurants` | Create a restaurant (optional `openingHours` preset, default `ALL_DAY`) |
 | GET | `/api/restaurants` | List restaurants that are open right now |
-| GET | `/api/restaurants/{id}/opening-hours` | Get the weekly opening hours |
-| PUT | `/api/restaurants/{id}/opening-hours` | Replace the whole schedule |
-| PATCH | `/api/restaurants/{id}/accepting-orders` | Pause or resume orders (manual switch) |
+| GET | `/api/restaurants/{id}/opening-hours` | Get the opening-hours preset with its open and close time |
+| PUT | `/api/restaurants/{id}/opening-hours` | Set the opening-hours preset |
+| PUT | `/api/restaurants/{id}/pause` | Pause orders for 1–1440 minutes (repeat to extend) |
+| DELETE | `/api/restaurants/{id}/pause` | End a pause early |
 | POST | `/api/restaurants/{id}/menu` | Add a menu item |
 | GET | `/api/restaurants/{id}/menu` | Get a restaurant's menu |
 | PATCH | `/api/menu/{id}/availability` | Toggle a menu item's availability |
@@ -119,13 +120,30 @@ PENDING ──► CONFIRMED ──► PREPARING ──► DELIVERED
 Status changes only move forward. Invalid transitions are rejected with 400.
 
 ### Opening hours
-"Open" is **calculated, not stored**. A restaurant is open when its manual switch (`acceptingOrders`) is on **and** the current time falls inside one of its stored opening periods (`opening_hours` table).
-- A day can have several periods (lunch and dinner).
-- If `closeTime` is not after `openTime`, the period runs past midnight (`18:00`–`02:00`) and also covers the next morning.
-- `openTime` is inclusive, `closeTime` is exclusive.
-- A restaurant with no schedule has no time restriction, so only the manual switch applies.
+"Open" is **calculated, never stored**, because a stored flag goes stale as soon as the clock passes a closing time. A restaurant is open when it is **not paused** and the current time is inside its opening-hours preset.
+
+Opening hours are an `OpeningHours` enum, stored as text in the `restaurants.opening_hours` column. Each preset carries its own open and close time and applies to **every day of the week**:
+
+| Preset | Open | Close |
+|--------|------|-------|
+| `ALL_DAY` (default) | always | always |
+| `MORNING` | 06:00 | 14:00 |
+| `OFFICE_HOURS` | 09:00 | 21:00 |
+| `EVENING` | 17:00 | 23:00 |
+| `LATE_NIGHT` | 20:00 | 04:00 (next day) |
+
+- If the close time is not after the open time, the window runs past midnight (`LATE_NIGHT`), so it also covers the early morning.
+- The open time is inclusive and the close time is exclusive.
 - Times are evaluated in the `app.timezone` zone (default `Asia/Bangkok`), not the server's zone.
-- `RestaurantResponse` returns both `acceptingOrders` (the switch) and `openNow` (the computed result).
+- Trade-off: presets keep the model simple, but a restaurant can't be closed on specific weekdays or have a lunch and dinner split. Adding a preset is one line in the enum.
+
+### Pausing a restaurant
+Opening hours can't know about a power cut or an overloaded kitchen, so owners can pause orders manually with `PUT /api/restaurants/{id}/pause` (`durationMinutes` 1–1440, optional `reason`).
+- The pause is stored as `paused_until`, a **timestamp, not a boolean**. When it passes, the restaurant follows its opening hours again with no cleanup, so a forgotten pause cannot close a restaurant forever.
+- The maximum is 24 hours; a longer pause has to be renewed on purpose.
+- Both calls are idempotent: repeating `PUT` only moves the end of the pause, and `DELETE` on a restaurant that isn't paused does nothing. A client retrying after a timeout cannot flip the state by accident.
+- A pause can only close a restaurant. It never opens one outside its opening hours.
+- `RestaurantResponse` returns `acceptingOrders` (false while paused), `openNow` (the computed result), and `pausedUntil` / `pauseReason` while a pause is active.
 
 ### Ordering guards
 - The restaurant must be open now (see above).

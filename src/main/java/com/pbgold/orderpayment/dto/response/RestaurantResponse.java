@@ -1,11 +1,11 @@
 package com.pbgold.orderpayment.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @Builder
@@ -15,10 +15,15 @@ public class RestaurantResponse {
     private Long id;
     private String name;
     private String category;
-    // Manual switch set by the restaurant ("pause orders")
+    // False while a manual pause is active
     private Boolean acceptingOrders;
-    // Computed per request: acceptingOrders AND current time is inside the opening hours
+    // Computed per request: not paused AND the current time is inside the opening hours
     private Boolean openNow;
-    private List<OpeningHoursResponse> openingHours;
+    // Only present while a pause is active
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private LocalDateTime pausedUntil;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String pauseReason;
+    private OpeningHoursResponse openingHours;
     private LocalDateTime createdAt;
 }

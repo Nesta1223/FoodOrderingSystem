@@ -1,15 +1,11 @@
 package com.pbgold.orderpayment.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -24,6 +20,7 @@ public class CreateRestaurantRequest {
     @NotBlank(message = "category is required")
     private String category;
 
-    // Optional. Omitted or empty means no time restriction
-    private List<@Valid @NotNull OpeningHoursRequest> openingHours;
+    // Optional. Omitted means ALL_DAY
+    @Schema(example = "OFFICE_HOURS", allowableValues = {"ALL_DAY", "MORNING", "OFFICE_HOURS", "EVENING", "LATE_NIGHT"})
+    private String openingHours;
 }

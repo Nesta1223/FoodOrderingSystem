@@ -12,11 +12,11 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class OpeningHoursResponse {
 
-    private String dayOfWeek;
+    private String type;
 
     @Schema(type = "string", example = "09:00")
     private LocalTime openTime;
 
-    @Schema(type = "string", example = "21:00")
+    @Schema(type = "string", example = "21:00", description = "If not after openTime, the window runs past midnight")
     private LocalTime closeTime;
 }

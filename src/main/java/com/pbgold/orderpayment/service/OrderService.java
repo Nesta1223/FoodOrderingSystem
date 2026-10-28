@@ -64,6 +64,16 @@ public class OrderService {
         this.paymentRepository = paymentRepository;
     }
 
+    /**
+     * Creates a PENDING order from item ids and quantities.
+     * 1. The user and the restaurant must exist.
+     * 2. The restaurant must be open now: not paused and inside its opening hours.
+     * 3. Every item must exist, belong to that restaurant and be available.
+     * 4. Each item's current menu price is copied into its order line, so later price changes
+     *    never change this order.
+     * 5. The total is calculated here as the sum of quantity x locked price. Nothing from the client is trusted.
+     * Any failure throws before anything is saved, so no half-built order is left behind.
+     */
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
         User user = userRepository.findById(request.getUserId())
@@ -71,7 +81,7 @@ public class OrderService {
         Restaurant restaurant = restaurantRepository.findById(request.getRestaurantId())
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant", request.getRestaurantId()));
 
-        // Rule 1: restaurant must be open now (manual switch on AND inside its opening hours)
+        // Rule 1: restaurant must be open now (not paused AND inside its opening hours)
         if (!openingHoursChecker.isOpenNow(restaurant)) {
             throw new BusinessException("Restaurant is closed");
         }
@@ -119,11 +129,18 @@ public class OrderService {
         return toResponse(orderRepository.save(order));
     }
 
+    /**
+     * Loads one order with its items, or throws 404 if it does not exist.
+     */
     @Transactional(readOnly = true)
     public OrderResponse getOrder(Long id) {
         return toResponse(findOrder(id));
     }
 
+    /**
+     * Lists a user's orders, newest first. An unknown user throws 404, so it is not confused
+     * with a real user who simply has no orders yet.
+     */
     @Transactional(readOnly = true)
     public List<OrderResponse> getOrdersByUser(Long userId) {
         if (!userRepository.existsById(userId)) {
@@ -134,6 +151,12 @@ public class OrderService {
                 .toList();
     }
 
+    /**
+     * Moves an order to the requested status. The order row is locked first, so a payment or a cancel
+     * arriving at the same moment cannot interleave. CANCELLED goes through the cancel rules. Any other
+     * target must be the next step of PENDING, CONFIRMED, PREPARING, DELIVERED; skipping a step or
+     * moving backwards throws 400.
+     */
     @Transactional
     public OrderResponse updateOrderStatus(Long id, UpdateOrderStatusRequest request) {
         OrderStatus target = EnumParser.parse(OrderStatus.class, request.getStatus(), "status");
@@ -149,6 +172,10 @@ public class OrderService {
         return toResponse(orderRepository.saveAndFlush(order));
     }
 
+    /**
+     * Cancels an order after locking its row. Allowed only while the order is PENDING and has no successful
+     * payment. The order is kept and marked CANCELLED, never deleted.
+     */
     @Transactional
     public OrderResponse cancelOrder(Long id) {
         return cancel(findOrderForUpdate(id));

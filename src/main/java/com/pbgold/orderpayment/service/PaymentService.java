@@ -28,6 +28,15 @@ public class PaymentService {
         this.orderRepository = orderRepository;
     }
 
+    /**
+     * Pays an order in full.
+     * 1. Locks the order row, so two simultaneous requests cannot both pay the same order.
+     * 2. Rejects cancelled orders, orders that already have a SUCCESS payment, and any amount that
+     *    differs from the order total.
+     * 3. There is no external gateway, so the payment is recorded as SUCCESS straight away with a random
+     *    UUID transaction reference and the paid time.
+     * The stored amount is the order total, never a value taken from the client.
+     */
     @Transactional
     public PaymentResponse processPayment(CreatePaymentRequest request) {
         PaymentMethod method = EnumParser.parse(PaymentMethod.class, request.getMethod(), "method");
@@ -62,6 +71,10 @@ public class PaymentService {
         return toResponse(paymentRepository.save(payment));
     }
 
+    /**
+     * Returns the latest payment row of an order. Throws 404 if the order does not exist, and also
+     * if it exists but has never been paid.
+     */
     @Transactional(readOnly = true)
     public PaymentResponse getPaymentByOrder(Long orderId) {
         if (!orderRepository.existsById(orderId)) {
@@ -72,6 +85,11 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Payment for order " + orderId + " not found"));
     }
 
+    /**
+     * Refunds a payment. Only SUCCESS payments qualify. The row is never deleted: only its status changes
+     * to REFUNDED, so the amount, transaction reference and paid time stay as an audit record.
+     * The order itself is not changed.
+     */
     @Transactional
     public PaymentResponse refundPayment(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)

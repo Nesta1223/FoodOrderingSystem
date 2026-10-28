@@ -26,18 +26,31 @@ public class PaymentController {
         this.paymentService = paymentService;
     }
 
+    /**
+     * Pays for an order in full. The order must not be cancelled or already paid, and the amount must equal
+     * the order total exactly. There is no external payment gateway, so a valid payment succeeds immediately
+     * and receives a UUID transaction reference and a paid timestamp.
+     */
     @PostMapping
     @Operation(summary = "Pay for an order (amount must equal the order total exactly)")
     public ResponseEntity<PaymentResponse> processPayment(@Valid @RequestBody CreatePaymentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.processPayment(request));
     }
 
+    /**
+     * Returns the most recent payment for an order. An order can have several payment rows over time
+     * (for example a refunded one, then a new one). Responds 404 if the order has never been paid.
+     */
     @GetMapping("/{orderId}")
     @Operation(summary = "Get the latest payment for an order")
     public ResponseEntity<PaymentResponse> getPaymentByOrder(@PathVariable Long orderId) {
         return ResponseEntity.ok(paymentService.getPaymentByOrder(orderId));
     }
 
+    /**
+     * Refunds a successful payment. Only SUCCESS payments can be refunded. The payment row is never deleted:
+     * only its status changes to REFUNDED, so the history stays intact. The order itself is not changed.
+     */
     @PostMapping("/{id}/refund")
     @Operation(summary = "Refund a successful payment (the record is kept, status becomes REFUNDED)")
     public ResponseEntity<PaymentResponse> refundPayment(@PathVariable Long id) {
